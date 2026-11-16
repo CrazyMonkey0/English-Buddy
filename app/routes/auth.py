@@ -1,5 +1,5 @@
 from fastapi import APIRouter, Depends
-from users import fastapi_users
+from routes.users import fastapi_users
 from core.security import auth_backend
 from core.rate_limit import limiter
 from schemas.user import UserRead, UserCreate
@@ -11,11 +11,11 @@ router.include_router(
 )
 
 router.include_router(
-    fastapi_users.get_register_router(UserRead, UserCreate), 
+    fastapi_users.get_register_router(UserRead, UserCreate),
 )
 
 router.include_router(
-    fastapi_users.get_reset_password_router(), 
+    fastapi_users.get_reset_password_router(),
 )
 
 router.include_router(

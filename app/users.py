@@ -9,19 +9,21 @@ from models.user import User
 from db.database import get_async_session
 from core.security import auth_backend, SECRET
 
+
 # User database adapter
 async def get_user_db(
-    session: AsyncSession = Depends(get_async_session)
+    session: AsyncSession = Depends(get_async_session),
 ) -> AsyncGenerator[SQLAlchemyUserDatabase, None]:
     yield SQLAlchemyUserDatabase(session, User)
+
 
 # User Manager
 class UserManager(IntegerIDMixin, BaseUserManager[User, int]):
     reset_password_token_secret = SECRET
     verification_token_secret = SECRET
-    reset_password_token_lifetime_seconds = 60 * 15  # 15 minutes 
+    reset_password_token_lifetime_seconds = 60 * 15  # 15 minutes
 
-    async def on_after_register(self, user: User, request: Optional[Request] = None): 
+    async def on_after_register(self, user: User, request: Optional[Request] = None):
         print(f"User {user.id} has registered.")
 
     async def on_after_forgot_password(
@@ -43,8 +45,8 @@ If this is not you, please ignore this message—your password will remain uncha
 Best regards,
     The English Buddy Team
 """)
-    
-    async def create(self, user_create, safe = False, request = None):
+
+    async def create(self, user_create, safe=False, request=None):
         if not getattr(user_create, "username", None):
             raise HTTPException(status_code=400, detail="No username provided.")
 
@@ -53,11 +55,13 @@ Best regards,
         existing_user = result.scalar_one_or_none()
         if existing_user:
             raise HTTPException(status_code=400, detail="Username already exists.")
-            
+
         return await super().create(user_create, safe, request)
+
 
 async def get_user_manager(user_db: SQLAlchemyUserDatabase = Depends(get_user_db)):
     yield UserManager(user_db)
+
 
 # FastAPIUsers instance
 fastapi_users = FastAPIUsers[User, int](
@@ -68,3 +72,4 @@ fastapi_users = FastAPIUsers[User, int](
 # Dependencies
 current_active_user = fastapi_users.current_user(active=True)
 current_superuser = fastapi_users.current_user(active=True, superuser=True)
+current_optional_user = fastapi_users.current_user(optional=True, active=True)
