@@ -4,6 +4,7 @@ from sqlalchemy import Text, ForeignKey, String
 from sqlalchemy.orm import Mapped, mapped_column, relationship
 from db.database import Base
 
+
 class Message(Base):
     __tablename__ = "messages"
 
@@ -13,5 +14,12 @@ class Message(Base):
     content: Mapped[str] = mapped_column(Text)
     created_at: Mapped[datetime] = mapped_column(default=datetime.utcnow)
 
-    # Relacja zwrotna
-    conversation: Mapped["Conversation"] = relationship("Conversation", back_populates="messages")
+    conversation: Mapped["Conversation"] = relationship(
+        "Conversation", back_populates="messages"
+    )
+
+    audio_assets: Mapped[list["MessageAudio"]] = relationship(
+        "MessageAudio",
+        back_populates="message",
+        cascade="all, delete-orphan",
+    )
