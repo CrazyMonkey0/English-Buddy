@@ -7,17 +7,19 @@ from sqlalchemy import select
 from sqlalchemy.ext.asyncio import AsyncSession
 
 
-async def create_conversation(session: AsyncSession, user_id: str) -> uuid.UUID:
+async def create_conversation(
+    session: AsyncSession, user_id: int, title: str | None = None
+) -> uuid.UUID:
     new_conv_id = uuid.uuid4()
     # Assuming you have a Conversation model to create a new conversation
-    new_conversation = Conversation(id=new_conv_id, user_id=user_id)
+    new_conversation = Conversation(id=new_conv_id, user_id=user_id, title=title)
     session.add(new_conversation)
     await session.commit()
     return new_conv_id
 
 
 async def get_all_conversations(
-    session: AsyncSession, user_id: str
+    session: AsyncSession, user_id: int
 ) -> list[Conversation]:
     stmt = select(Conversation).where(Conversation.user_id == user_id)
     result = await session.execute(stmt)
@@ -26,7 +28,7 @@ async def get_all_conversations(
 
 
 async def remove_conversation(
-    session: AsyncSession, user_id: str, conv_id: uuid.UUID
+    session: AsyncSession, user_id: int, conv_id: uuid.UUID
 ) -> None:
     stmt = select(Conversation).where(
         Conversation.id == conv_id, Conversation.user_id == user_id
@@ -44,7 +46,7 @@ async def remove_conversation(
 
 
 async def change_conversation_title(
-    session: AsyncSession, user_id: str, conv_id: uuid.UUID, new_title: str
+    session: AsyncSession, user_id: int, conv_id: uuid.UUID, new_title: str
 ) -> str | None:
     stmt = select(Conversation).where(
         Conversation.user_id == user_id, Conversation.id == conv_id
@@ -60,11 +62,14 @@ async def change_conversation_title(
 
 
 async def get_formatted_context(
-    session: AsyncSession, conv_id: uuid.UUID, limit: int = 6
+    session: AsyncSession, user_id: int, conv_id: uuid.UUID, limit: int = 6
 ) -> list[dict[str, str]]:
     stmt = (
         select(Message)
-        .where(Message.conversation_id == conv_id)
+        .where(
+            Message.conversation_id == conv_id,
+            Message.conversation.has(user_id=user_id),
+        )
         .order_by(Message.created_at.desc())
         .limit(limit)
     )
@@ -83,7 +88,7 @@ async def get_formatted_context(
 
 
 async def get_conversation_messages(
-    session: AsyncSession, user_id: str, conv_id: uuid.UUID
+    session: AsyncSession, user_id: int, conv_id: uuid.UUID
 ) -> list[Message]:
     stmt = (
         select(Message)
@@ -100,7 +105,7 @@ async def get_conversation_messages(
 
 async def create_new_message(
     session: AsyncSession,
-    user_id: str,
+    user_id: int,
     conv_id: uuid.UUID,
     content: str,
     role: str,
