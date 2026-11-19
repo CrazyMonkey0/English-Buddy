@@ -19,7 +19,7 @@ function ChatBox() {
     const messagesEndRef = useRef(null);
     const [translations, setTranslations] = useState({});
     const [visibleTranslations, setVisibleTranslations] = useState({});
-    const [playingIndex, setPlayingIndex] = useState(null);
+    const [playingAudio, setPlayingAudio] = useState(null);
     const audioPlayerRef = useRef(new Audio());
     const { isAuthenticated, logout } = useAuth();
     const navigate = useNavigate();
@@ -64,13 +64,13 @@ function ChatBox() {
         }));
     };
 
-    const handlePlayAudio = (index, audioSrc) => {
+    const handlePlayAudio = (audioKey, audioSrc) => {
         const player = audioPlayerRef.current;
 
         // Jeśli aktualnie odtwarzamy to samo audio - zatrzymaj
-        if (playingIndex === index) {
+        if (playingAudio === audioKey) {
             player.pause();
-            setPlayingIndex(null);
+            setPlayingAudio(null);
             return;
         }
 
@@ -80,11 +80,11 @@ function ChatBox() {
         // Ustaw nowe źródło i odtwórz
         player.src = audioSrc;
         player.play();
-        setPlayingIndex(index);
+        setPlayingAudio(audioKey);
 
         // Resetuj stan po zakończeniu odtwarzania
         player.onended = () => {
-            setPlayingIndex(null);
+            setPlayingAudio(null);
         };
     };
 
@@ -139,15 +139,25 @@ function ChatBox() {
                             )}
 
                             <div className="message-buttons">
-                                {msg.audio && (
-                                    <button
-                                        onClick={() => handlePlayAudio(index, msg.audio)}
-                                        title={playingIndex === index ? "Wstrzymaj" : "Odtwórz nagranie"}
-                                        className={`mess ${playingIndex === index ? "pause" : "play"}`}
-                                    >
-                                        {playingIndex === index ? <Pause size={20} /> : <Play size={20} />}
-                                    </button>
-                                )}
+                                {(msg.audioAssets || []).map((asset, audioIndex) => {
+                                    const audioKey = `${index}-${audioIndex}`;
+                                    const isPlaying = playingAudio === audioKey;
+                                    const label = asset.audio_type === "asr"
+                                        ? "Odtwórz nagranie użytkownika"
+                                        : "Odtwórz odpowiedź głosową";
+
+                                    return (
+                                        <button
+                                            key={asset.id || audioKey}
+                                            onClick={() => handlePlayAudio(audioKey, asset.url)}
+                                            title={isPlaying ? "Wstrzymaj" : label}
+                                            aria-label={isPlaying ? "Wstrzymaj" : label}
+                                            className={`mess ${isPlaying ? "pause" : "play"}`}
+                                        >
+                                            {isPlaying ? <Pause size={20} /> : <Play size={20} />}
+                                        </button>
+                                    );
+                                })}
 
                                 {!translations[index] && (
                                     <button

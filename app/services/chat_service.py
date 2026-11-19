@@ -4,8 +4,10 @@ from datetime import datetime
 from fastapi import HTTPException, status
 from models.conversation import Conversation
 from models.message import Message
+from models.message_audio import MessageAudio
 from sqlalchemy import select
 from sqlalchemy.ext.asyncio import AsyncSession
+from sqlalchemy.orm import selectinload
 
 
 async def create_conversation(
@@ -116,19 +118,47 @@ async def get_formatted_context(
 
 
 async def get_conversation_messages(
-    session: AsyncSession, user_id: int, conv_id: uuid.UUID
+    session: AsyncSession,
+    user_id: int,
+    conv_id: uuid.UUID,
 ) -> list[Message]:
+
     await get_owned_conversation(session, user_id, conv_id)
+
     stmt = (
         select(Message)
-        .where(
-            Message.conversation_id == conv_id,
-            Message.conversation.has(user_id=str(user_id)),
-        )
+        .options(selectinload(Message.audio_assets))
+        .where(Message.conversation_id == conv_id)
         .order_by(Message.created_at.asc())
     )
+
     result = await session.execute(stmt)
+
     return list(result.scalars().all())
+
+
+async def create_message_audio(
+    session: AsyncSession,
+    message: Message,
+    file_path: str,
+    audio_type: str = "tts",
+    content_type: str = "audio/wav",
+    duration_ms: int | None = None,
+    model_name: str | None = None,
+) -> MessageAudio:
+
+    audio = MessageAudio(
+        message=message,
+        audio_type=audio_type,
+        file_path=file_path,
+        content_type=content_type,
+        duration_ms=duration_ms,
+        model_name=model_name,
+    )
+
+    session.add(audio)
+
+    return audio
 
 
 async def create_new_message(
@@ -139,18 +169,11 @@ async def create_new_message(
     role: str,
 ) -> Message:
 
-    stmt = select(Conversation).where(
-        Conversation.id == conv_id,
-        Conversation.user_id == str(user_id),
+    conversation = await get_owned_conversation(
+        session,
+        user_id,
+        conv_id,
     )
-
-    result = await session.execute(stmt)
-    conversation = result.scalar_one_or_none()
-
-    if conversation is None:
-        raise HTTPException(
-            status_code=status.HTTP_404_NOT_FOUND, detail="Conversation not found"
-        )
 
     new_msg = Message(
         conversation=conversation,
@@ -159,8 +182,6 @@ async def create_new_message(
     )
 
     session.add(new_msg)
-    await session.commit()
-    await session.refresh(new_msg)
 
     return new_msg
 

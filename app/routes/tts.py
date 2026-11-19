@@ -27,4 +27,4 @@ def save_audio(request: Request, text: str, voice: str = "af_heart"):
         audio_total = np.concatenate([audio_total, audio])
 
     sf.write(file_path, audio_total, 24000)
-    return f"http://127.0.0.1:8000/audio/output/{file_name}"
+    return f"/audio/output/{file_name}"
