@@ -14,7 +14,7 @@ export default function ResetPasswordForm() {
 
     useEffect(() => {
         if (!token) {
-            navigate("/", { replace: true });
+            navigate("/chat", { replace: true });
         }
     }, [token, navigate]);
 

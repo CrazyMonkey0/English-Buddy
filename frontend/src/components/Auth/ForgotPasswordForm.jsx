@@ -13,7 +13,7 @@ export default function ForgotPasswordForm() {
 
     useEffect(() => {
         if (!checkingAuth && isAuthenticated) {
-            navigate("/", { replace: true });
+            navigate("/chat", { replace: true });
         }
     }, [checkingAuth, isAuthenticated, navigate]);
 

@@ -18,7 +18,7 @@ export function AuthProvider({ children }) {
 
         const checkAuth = async () => {
             try {
-                if (getCookie('csrftoken') === undefined) {
+                if (getCookie('csrf_token') === undefined) {
                     await initCsrf();
                 }
                 // SPRAWDŹ NAJPIERW localStorage
