@@ -2,7 +2,7 @@ import uuid
 from datetime import datetime
 
 from db.database import Base
-from sqlalchemy import JSON, ForeignKey, String
+from sqlalchemy import ForeignKey, String
 from sqlalchemy.orm import Mapped, mapped_column, relationship
 
 
@@ -16,6 +16,7 @@ class MessageAudio(Base):
 
     message_id: Mapped[uuid.UUID] = mapped_column(
         ForeignKey("messages.id", ondelete="CASCADE"),
+        nullable=False,
         index=True,
     )
 
@@ -43,6 +44,7 @@ class MessageAudio(Base):
 
     created_at: Mapped[datetime] = mapped_column(
         default=datetime.utcnow,
+        nullable=False,
     )
 
     message: Mapped["Message"] = relationship(
