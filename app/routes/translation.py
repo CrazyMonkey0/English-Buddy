@@ -6,8 +6,10 @@ from core.rate_limit import limiter
 model_name = "allegro/BiDi-eng-pol"
 router = APIRouter()
 
+
 class TextInput(BaseModel):
-    text: str 
+    text: str
+
 
 # Load translation model and tokenizer
 def load_model_translation():
@@ -15,8 +17,9 @@ def load_model_translation():
     model = AutoModelForSeq2SeqLM.from_pretrained(model_name)
     return model, tokenizer
 
+
 @router.post("/translate")
-@limiter.limit("4/minute") 
+@limiter.limit("20/minute")
 async def translate_text(request: Request, text: TextInput):
     model, tokenizer = request.app.state.model_trans, request.app.state.tokenizer_trans
 

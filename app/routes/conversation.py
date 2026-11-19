@@ -1,5 +1,6 @@
 import uuid
 
+from core.rate_limit import limiter
 from db.database import get_async_session
 from fastapi import APIRouter, Depends, Request
 from models.user import User
@@ -19,6 +20,7 @@ router = APIRouter()
 
 
 @router.get("/")
+@limiter.limit("15/minute")
 async def get_conversations(
     request: Request,
     db: AsyncSession = Depends(get_async_session),
@@ -28,6 +30,7 @@ async def get_conversations(
 
 
 @router.post("/")
+@limiter.limit("3/minute")
 async def create_conv(
     request: Request,
     db: AsyncSession = Depends(get_async_session),
@@ -37,6 +40,7 @@ async def create_conv(
 
 
 @router.patch("/{conversation_id}")
+@limiter.limit("4/minute")
 async def update_conversation_title(
     conversation_id: uuid.UUID,
     new_title: str,
@@ -48,6 +52,7 @@ async def update_conversation_title(
 
 
 @router.delete("/{conversation_id}")
+@limiter.limit("10/minute")
 async def delete_conversation(
     conversation_id: uuid.UUID,
     request: Request,
@@ -59,6 +64,7 @@ async def delete_conversation(
 
 
 @router.get("/{conversation_id}/messages", response_model=list[ChatMessageRead])
+@limiter.limit("15/minute")
 async def get_all_conversation_messages(
     conversation_id: uuid.UUID,
     request: Request,
@@ -69,6 +75,7 @@ async def get_all_conversation_messages(
 
 
 @router.post("/{conversation_id}/messages", response_model=ChatMessageRead)
+@limiter.limit("60/minute")
 async def add_message_to_conversation(
     conversation_id: uuid.UUID,
     message_content: str,
