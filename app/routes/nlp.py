@@ -1,3 +1,5 @@
+import uuid
+
 from core.rate_limit import limiter
 from db.database import get_async_session
 from fastapi import APIRouter, Depends, Request
@@ -7,10 +9,11 @@ from services.chat_service import (
     create_conversation,
     create_new_message,
     get_formatted_context,
+    get_owned_conversation,
 )
 from sqlalchemy.ext.asyncio import AsyncSession
 from transformers import AutoModelForCausalLM, AutoTokenizer
-from users import current_optional_user
+from users import current_active_user
 
 from .tts import save_audio
 
@@ -37,18 +40,18 @@ async def chat(
     db: AsyncSession = Depends(
         get_async_session,
     ),
-    user: User | None = Depends(current_optional_user),
+    user: User = Depends(current_active_user),
 ):
-    context = []
     model, tokenizer = request.app.state.model_nlp, request.app.state.tokenizer_nlp
 
-    if user:
-        if data.conversation_id is None:
-            # Create a new conversation if no conversation_id is provided
-            data.conversation_id = await create_conversation(
-                db, user.id, title="New Conversation"
-            )
-        context = await get_formatted_context(db, user.id, data.conversation_id)
+    if data.conversation_id is None:
+        data.conversation_id = await create_conversation(
+            db, user.id, title="New Conversation"
+        )
+    else:
+        await get_owned_conversation(db, user.id, data.conversation_id)
+
+    context = await get_formatted_context(db, user.id, data.conversation_id)
 
     context.append({"role": "user", "content": data.message})
 
@@ -72,23 +75,21 @@ async def chat(
         for input_ids, output_ids in zip(model_inputs.input_ids, generated_ids)
     ]
     response = tokenizer.batch_decode(generated_ids, skip_special_tokens=True)[0]
-    if user:
-        await create_new_message(
-            db,
-            user.id,
-            data.conversation_id,
-            data.message,
-            "user",
-        )
-
-        await create_new_message(
-            db,
-            user.id,
-            data.conversation_id,
-            response,
-            "assistant",
-        )
-        await db.commit()
+    await create_new_message(
+        db,
+        user.id,
+        data.conversation_id,
+        data.message,
+        "user",
+    )
+    await create_new_message(
+        db,
+        user.id,
+        data.conversation_id,
+        response,
+        "assistant",
+    )
+    await db.commit()
     # Save response as audio
     url_path = save_audio(request, response)
 
