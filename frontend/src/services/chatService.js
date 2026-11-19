@@ -25,6 +25,18 @@ export const getConversations = async () => {
     return response.data;
 };
 
+export const createConversation = async () => {
+    const response = await api.post("/conversations/");
+    return response.data;
+};
+
+export const updateConversationTitle = async (conversationId, title) => {
+    const response = await api.patch(`/conversations/${conversationId}`, null, {
+        params: { new_title: title },
+    });
+    return response.data;
+};
+
 export const deleteConversation = async (conversationId) => {
     const response = await api.delete(`/conversations/${conversationId}`);
     return response.data;
