@@ -3,6 +3,7 @@ import uuid
 from db.database import get_async_session
 from fastapi import APIRouter, Depends, Request
 from models.user import User
+from schemas.chat import ChatMessageRead
 from services.chat_service import (
     change_conversation_title,
     create_conversation,
@@ -57,7 +58,7 @@ async def delete_conversation(
     return {"message": "Conversation deleted successfully."}
 
 
-@router.get("/{conversation_id}/messages")
+@router.get("/{conversation_id}/messages", response_model=list[ChatMessageRead])
 async def get_all_conversation_messages(
     conversation_id: uuid.UUID,
     request: Request,
@@ -67,7 +68,7 @@ async def get_all_conversation_messages(
     return await get_conversation_messages(db, user.id, conversation_id)
 
 
-@router.post("/{conversation_id}/messages")
+@router.post("/{conversation_id}/messages", response_model=ChatMessageRead)
 async def add_message_to_conversation(
     conversation_id: uuid.UUID,
     message_content: str,
@@ -75,6 +76,9 @@ async def add_message_to_conversation(
     db: AsyncSession = Depends(get_async_session),
     user: User = Depends(current_active_user),
 ):
-    return await create_new_message(
+    message = await create_new_message(
         db, user.id, conversation_id, message_content, role="user"
     )
+    await db.commit()
+    await db.refresh(message, attribute_names=["audio_assets"])
+    return message

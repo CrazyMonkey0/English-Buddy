@@ -2,6 +2,7 @@ import { useEffect, useRef, useState } from "react";
 import { useNavigate, useParams } from "react-router-dom";
 import {
     getConversationMessages,
+    resolveAudioUrl,
     sendMessageToBot,
     sendAudioMessageToBot,
 } from "../services/chatService.js";
@@ -38,6 +39,10 @@ export const useChat = () => {
                     sender: message.role === "assistant" ? "bot" : "user",
                     text: message.content,
                     type: "text",
+                    audioAssets: (message.audio_assets || []).map((asset) => ({
+                        ...asset,
+                        url: resolveAudioUrl(asset.file_path),
+                    })),
                     createdAt: message.created_at,
                 })));
             })
@@ -82,7 +87,12 @@ export const useChat = () => {
                 {
                     sender: "bot",
                     text: botReply.response,
-                    audio: botReply.audio,
+                    audioAssets: botReply.audio
+                        ? [{
+                            audio_type: "tts",
+                            url: resolveAudioUrl(botReply.audio),
+                        }]
+                        : [],
                     type: "text"
                 }
             ]);
@@ -125,7 +135,13 @@ export const useChat = () => {
                     sender: "user",
                     text: result.transcription,
                     type: "audio",
-                    audioBlob
+                    audioBlob,
+                    audioAssets: result.userAudioUrl
+                        ? [{
+                            audio_type: "asr",
+                            url: result.userAudioUrl,
+                        }]
+                        : [],
                 };
                 return newMessages;
             });
@@ -136,7 +152,12 @@ export const useChat = () => {
                 {
                     sender: "bot",
                     text: result.response,
-                    audio: result.audio,
+                    audioAssets: result.audio
+                        ? [{
+                            audio_type: "tts",
+                            url: resolveAudioUrl(result.audio),
+                        }]
+                        : [],
                     type: "text"
                 }
             ]);

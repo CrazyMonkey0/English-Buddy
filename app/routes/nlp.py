@@ -1,12 +1,14 @@
 import uuid
+from pathlib import Path
 
 from core.rate_limit import limiter
 from db.database import get_async_session
-from fastapi import APIRouter, Depends, Request
+from fastapi import APIRouter, Depends, HTTPException, Request, status
 from models.user import User
 from schemas.chat import ChatRequest
 from services.chat_service import (
     create_conversation,
+    create_message_audio,
     create_new_message,
     get_formatted_context,
     get_owned_conversation,
@@ -44,6 +46,15 @@ async def chat(
 ):
     model, tokenizer = request.app.state.model_nlp, request.app.state.tokenizer_nlp
 
+    if data.audio_id is not None:
+        audio_filename = f"{data.audio_id.hex}.wav"
+        audio_path = Path(request.app.state.AUDIO_INPUT_DIR) / audio_filename
+        if not audio_path.is_file():
+            raise HTTPException(
+                status_code=status.HTTP_422_UNPROCESSABLE_ENTITY,
+                detail="Uploaded audio not found",
+            )
+
     if data.conversation_id is None:
         data.conversation_id = await create_conversation(
             db, user.id, title="New Conversation"
@@ -75,26 +86,45 @@ async def chat(
         for input_ids, output_ids in zip(model_inputs.input_ids, generated_ids)
     ]
     response = tokenizer.batch_decode(generated_ids, skip_special_tokens=True)[0]
-    await create_new_message(
+    user_message = await create_new_message(
         db,
         user.id,
         data.conversation_id,
         data.message,
         "user",
     )
-    await create_new_message(
+    if data.audio_id is not None:
+        await create_message_audio(
+            db,
+            user_message,
+            f"/audio/input/{data.audio_id.hex}.wav",
+            audio_type="asr",
+            content_type="audio/wav",
+            model_name="openai/whisper-small.en",
+        )
+
+    assistant_message = await create_new_message(
         db,
         user.id,
         data.conversation_id,
         response,
         "assistant",
     )
-    await db.commit()
+
     # Save response as audio
     url_path = save_audio(request, response)
+    await create_message_audio(
+        db,
+        assistant_message,
+        url_path,
+        audio_type="tts",
+        content_type="audio/wav",
+        model_name="kokoro",
+    )
+    await db.commit()
 
     return {
         "conversation_id": data.conversation_id,
         "response": response,
-        "audio": url_path,
+        "audio": f"http://127.0.0.1:8000{url_path}",
     }

@@ -1,7 +1,17 @@
 import api from "./api";
 
-export const sendMessageToBot = async (conversation_id, message) => {
-    const response = await api.post("/nlp/chat", { conversation_id, message });
+export const resolveAudioUrl = (filePath) =>
+    new URL(filePath, api.defaults.baseURL).toString();
+
+export const sendMessageToBot = async (
+    conversation_id,
+    message,
+    audio_id = null,
+) => {
+    const payload = { conversation_id, message };
+    if (audio_id) payload.audio_id = audio_id;
+
+    const response = await api.post("/nlp/chat", payload);
     return response.data;
 };
 
@@ -35,10 +45,15 @@ export const sendAudioMessageToBot = async (audioBlob, conversationId) => {
     const asrResult = await sendAudioToASR(audioBlob);
     const transcription = asrResult.transcription;
 
-    const botReply = await sendMessageToBot(conversationId, transcription);
+    const botReply = await sendMessageToBot(
+        conversationId,
+        transcription,
+        asrResult.audio_id,
+    );
 
     return {
         transcription,
+        userAudioUrl: resolveAudioUrl(asrResult.audio_url),
         ...botReply
     };
 };

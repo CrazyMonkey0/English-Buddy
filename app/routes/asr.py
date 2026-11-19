@@ -3,8 +3,7 @@ import uuid
 
 import librosa
 from core.rate_limit import limiter
-from fastapi import APIRouter, File, Request, UploadFile
-from fastapi import Depends
+from fastapi import APIRouter, Depends, File, Request, UploadFile
 from models.user import User
 from transformers import WhisperForConditionalGeneration, WhisperProcessor
 from users import current_active_user
@@ -28,8 +27,9 @@ async def asr(
     # Get the loaded ASR model and processor
     processor, model = request.app.state.processor_asr, request.app.state.model_asr
     # Audio file path
-    if audio.filename is None:
-        audio.filename = uuid.uuid4().hex + ".wav"
+    audio_id = uuid.uuid4()
+    audio.filename = f"{audio_id.hex}.wav"
+
     audio_path = os.path.join(request.app.state.AUDIO_INPUT_DIR, audio.filename)
     with open(audio_path, "wb") as f:
         f.write(await audio.read())
@@ -47,4 +47,8 @@ async def asr(
     # Decoding tokens into text
     transcription = processor.batch_decode(output, skip_special_tokens=True)
 
-    return {"transcription": transcription[0]}
+    return {
+        "transcription": transcription[0],
+        "audio_id": str(audio_id),
+        "audio_url": f"/audio/input/{audio.filename}",
+    }
