@@ -1,25 +1,81 @@
-import { useState } from "react";
-import { v4 as uuidv4 } from "uuid";
-import { sendMessageToBot, sendAudioMessageToBot } from "../services/chatService.js";
+import { useEffect, useRef, useState } from "react";
+import { useNavigate, useParams } from "react-router-dom";
+import {
+    getConversationMessages,
+    sendMessageToBot,
+    sendAudioMessageToBot,
+} from "../services/chatService.js";
 
 export const useChat = () => {
     const [messages, setMessages] = useState([]);
     const [loading, setLoading] = useState(false);
+    const [historyLoading, setHistoryLoading] = useState(false);
+    const [error, setError] = useState(null);
+    const { conversationId } = useParams();
+    const navigate = useNavigate();
+    const submissionLock = useRef(false);
+    const historyRequest = useRef(0);
 
-    const [conversationId] = useState(() => {
-        const id = localStorage.getItem("conversation_id") || uuidv4();
-        localStorage.setItem("conversation_id", id);
-        return id;
-    });
+    useEffect(() => {
+        const requestId = ++historyRequest.current;
+        setError(null);
+        setMessages([]);
+
+        if (!conversationId) {
+            setHistoryLoading(false);
+            return;
+        }
+
+        let cancelled = false;
+        setHistoryLoading(true);
+
+        getConversationMessages(conversationId)
+            .then((history) => {
+                if (cancelled || requestId !== historyRequest.current) return;
+
+                setMessages(history.map((message) => ({
+                    id: message.id,
+                    sender: message.role === "assistant" ? "bot" : "user",
+                    text: message.content,
+                    type: "text",
+                    createdAt: message.created_at,
+                })));
+            })
+            .catch((err) => {
+                if (cancelled || requestId !== historyRequest.current) return;
+                const status = err.response?.status;
+                if (status === 404) {
+                    setError("Nie znaleziono tej konwersacji.");
+                } else if (status === 401) {
+                    setError("Zaloguj się, aby otworzyć konwersację.");
+                } else {
+                    setError("Nie udało się wczytać historii konwersacji.");
+                }
+            })
+            .finally(() => {
+                if (!cancelled && requestId === historyRequest.current) {
+                    setHistoryLoading(false);
+                }
+            });
+
+        return () => {
+            cancelled = true;
+        };
+    }, [conversationId]);
 
     const sendMessage = async (text) => {
-        if (!text.trim()) return;
+        if (!text.trim() || submissionLock.current) return;
 
+        submissionLock.current = true;
         setMessages((prev) => [...prev, { sender: "user", text, type: "text" }]);
         setLoading(true);
+        setError(null);
 
         try {
             const botReply = await sendMessageToBot(conversationId, text);
+            if (!conversationId && botReply.conversation_id) {
+                navigate(`/chat/${botReply.conversation_id}`);
+            }
 
             setMessages((prev) => [
                 ...prev,
@@ -32,28 +88,35 @@ export const useChat = () => {
             ]);
         } catch (err) {
             console.error("Błąd wysyłania wiadomości:", err);
+            setError("Błąd w odpowiedzi bota.");
 
             setMessages((prev) => [
                 ...prev,
                 { sender: "bot", text: "Błąd w odpowiedzi bota", type: "error" }
             ]);
         } finally {
+            submissionLock.current = false;
             setLoading(false);
         }
     };
 
     // Sending audio message
     const sendAudioMessage = async (audioBlob) => {
-        if (!audioBlob) return;
+        if (!audioBlob || submissionLock.current) return;
 
+        submissionLock.current = true;
         setMessages((prev) => [
             ...prev,
             { sender: "user", text: "🎤 Nagranie audio...", type: "audio", audioBlob }
         ]);
         setLoading(true);
+        setError(null);
 
         try {
-            const result = await sendAudioMessageToBot(audioBlob);
+            const result = await sendAudioMessageToBot(audioBlob, conversationId);
+            if (!conversationId && result.conversation_id) {
+                navigate(`/chat/${result.conversation_id}`);
+            }
 
             // Update last user message with actual transcription
             setMessages((prev) => {
@@ -79,6 +142,7 @@ export const useChat = () => {
             ]);
         } catch (err) {
             console.error("Błąd przetwarzania audio:", err);
+            setError("Nie udało się przetworzyć nagrania.");
 
             // Update last user message to show error
             setMessages((prev) => {
@@ -96,9 +160,17 @@ export const useChat = () => {
                 { sender: "bot", text: "Nie udało się przetworzyć nagrania", type: "error" }
             ]);
         } finally {
+            submissionLock.current = false;
             setLoading(false);
         }
     };
 
-    return { messages, sendMessage, sendAudioMessage, loading };
+    return {
+        messages,
+        sendMessage,
+        sendAudioMessage,
+        loading,
+        historyLoading,
+        error,
+    };
 };

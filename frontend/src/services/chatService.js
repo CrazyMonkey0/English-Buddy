@@ -5,6 +5,21 @@ export const sendMessageToBot = async (conversation_id, message) => {
     return response.data;
 };
 
+export const getConversationMessages = async (conversationId) => {
+    const response = await api.get(`/conversations/${conversationId}/messages`);
+    return response.data;
+};
+
+export const getConversations = async () => {
+    const response = await api.get("/conversations/");
+    return response.data;
+};
+
+export const deleteConversation = async (conversationId) => {
+    const response = await api.delete(`/conversations/${conversationId}`);
+    return response.data;
+};
+
 // Sending audio to ASR (speech recognition)
 export const sendAudioToASR = async (audioBlob) => {
     const formData = new FormData();
@@ -16,11 +31,11 @@ export const sendAudioToASR = async (audioBlob) => {
 };
 
 // Combination of ASR + NLP (audio -> text -> bot response)
-export const sendAudioMessageToBot = async (audioBlob) => {
+export const sendAudioMessageToBot = async (audioBlob, conversationId) => {
     const asrResult = await sendAudioToASR(audioBlob);
     const transcription = asrResult.transcription;
 
-    const botReply = await sendMessageToBot(transcription);
+    const botReply = await sendMessageToBot(conversationId, transcription);
 
     return {
         transcription,

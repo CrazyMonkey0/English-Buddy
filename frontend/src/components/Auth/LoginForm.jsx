@@ -14,7 +14,7 @@ export default function LoginForm() {
 
     useEffect(() => {
         if (!checkingAuth && isAuthenticated) {
-            navigate("/", { replace: true });
+            navigate("/chat", { replace: true });
         }
     }, [checkingAuth, isAuthenticated, navigate]);
 
@@ -28,7 +28,7 @@ export default function LoginForm() {
         e.preventDefault();
         try {
             await login(email, password);
-            navigate("/", { replace: true });
+            navigate("/chat", { replace: true });
         } catch {
             // error handling is done in the context
         }

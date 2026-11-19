@@ -8,13 +8,20 @@ import { useNavigate } from "react-router-dom";
 import "./chat.css";
 
 function ChatBox() {
-    const { messages, sendMessage, sendAudioMessage, loading } = useChat();
+    const {
+        messages,
+        sendMessage,
+        sendAudioMessage,
+        loading,
+        historyLoading,
+        error,
+    } = useChat();
     const messagesEndRef = useRef(null);
     const [translations, setTranslations] = useState({});
     const [visibleTranslations, setVisibleTranslations] = useState({});
     const [playingIndex, setPlayingIndex] = useState(null);
     const audioPlayerRef = useRef(new Audio());
-    const { user, isAuthenticated, logout } = useAuth();
+    const { isAuthenticated, logout } = useAuth();
     const navigate = useNavigate();
 
 
@@ -83,7 +90,7 @@ function ChatBox() {
 
     const handleLogout = async () => {
         await logout();               // wylogowanie użytkownika
-        navigate("/", { replace: true }); // przekierowanie na stronę główną
+        navigate("/chat", { replace: true }); // przekierowanie na stronę główną
     };
 
     return (
@@ -112,6 +119,12 @@ function ChatBox() {
             </div>
 
             <div className="messages">
+                {historyLoading && (
+                    <p className="loading">⏳ Ładowanie historii konwersacji...</p>
+                )}
+                {error && (
+                    <p className="conversation-error">{error}</p>
+                )}
                 {messages.map((msg, index) => (
                     <div
                         key={index}
@@ -167,7 +180,7 @@ function ChatBox() {
                         </div>
 
                         <span className="message-time">
-                            {new Date().toLocaleTimeString('pl-PL', {
+                            {(msg.createdAt ? new Date(msg.createdAt) : new Date()).toLocaleTimeString('pl-PL', {
                                 hour: '2-digit',
                                 minute: '2-digit'
                             })}
@@ -180,7 +193,7 @@ function ChatBox() {
             <MessageInput
                 onSendText={sendMessage}
                 onSendAudio={sendAudioMessage}
-                disabled={loading}
+                disabled={loading || historyLoading}
             />
         </div>
     );

@@ -485,6 +485,15 @@
     font-weight: 500;
 }
 
+.conversation-error {
+    padding: 10px 14px;
+    border-radius: 12px;
+    background: #ffeded;
+    color: #b42318;
+    text-align: center;
+    align-self: center;
+}
+
 /* Responsive design */
 @media (max-width: 768px) {
     .chatbox {
