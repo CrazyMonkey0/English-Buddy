@@ -1,10 +1,11 @@
-import { Routes, Route, Navigate } from "react-router-dom";
+import { Routes, Route } from "react-router-dom";
 import ChatBox from "./components/Chat/ChatBox";
 import Login from "./components/Auth/LoginForm";
 import Register from "./components/Auth/RegistrationForm";
 import ForgotPasswordForm from "./components/Auth/ForgotPasswordForm";
 import ForgotPasswordSent from "./components/Auth/ForgotPasswordSent";
 import ResetPasswordForm from "./components/Auth/ResetPasswordFrom";
+import LandingPage from "./components/Landing/LandingPage";
 import { AuthProvider } from "./context/useAuth";
 import "./App.css";
 
@@ -14,7 +15,7 @@ function App() {
     <div className="App">
       <AuthProvider>
         <Routes>
-          <Route path="/" element={<Navigate to="/chat" replace />} />
+          <Route path="/" element={<LandingPage />} />
           <Route path="/chat" element={<ChatBox />} />
           <Route path="/chat/:conversationId" element={<ChatBox />} />
           <Route path="/login" element={<Login />} />

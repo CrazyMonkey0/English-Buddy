@@ -1,12 +1,17 @@
 :root {
-  font-family: system-ui, Avenir, Helvetica, Arial, sans-serif;
+  font-family: Inter, ui-sans-serif, system-ui, -apple-system, BlinkMacSystemFont, "Segoe UI", sans-serif;
   line-height: 1.5;
   font-weight: 400;
-
-  color-scheme: light dark;
-  color: rgba(255, 255, 255, 0.87);
-  background-color: #0f0f1e;
-
+  color: #f5f7ff;
+  background-color: #080b12;
+  --eb-primary: #8b7cff;
+  --eb-primary-hover: #9a90ff;
+  --eb-primary-deep: #7161dc;
+  --eb-teal: #45d6c5;
+  --eb-text: #f5f7ff;
+  --eb-muted: #929bad;
+  --eb-surface: #141c2a;
+  --eb-border: rgba(255, 255, 255, 0.09);
   font-synthesis: none;
   text-rendering: optimizeLegibility;
   -webkit-font-smoothing: antialiased;
@@ -20,68 +25,133 @@
 }
 
 a {
-  font-weight: 500;
-  color: #646cff;
-  text-decoration: inherit;
-}
-
-a:hover {
-  color: #535bf2;
+  color: #aaa1ff;
+  text-decoration: none;
 }
 
 body {
   margin: 0;
   padding: 0;
-  width: 100vw;
-  height: 100vh;
-  overflow: hidden;
+  min-width: 320px;
+  min-height: 100vh;
+  background: #080b12;
+}
+
+html {
+  scroll-behavior: smooth;
 }
 
 #root {
   width: 100%;
-  height: 100%;
+  min-height: 100vh;
   display: flex;
   flex-direction: column;
-  overflow: hidden;
+  overflow-x: hidden;
 }
 
 h1 {
-  font-size: clamp(1.5rem, 5vw, 3.2rem);
-  line-height: 1.1;
-  text-align: center;
   margin: 0;
 }
 
-button {
-  border-radius: 8px;
-  border: 1px solid transparent;
-  font-weight: 500;
+button,
+.button,
+.nav-button {
+  min-height: 44px;
+  border: 1px solid rgba(139, 124, 255, 0.38);
+  border-radius: 11px;
+  color: var(--eb-text);
+  background: linear-gradient(135deg, var(--eb-primary), var(--eb-primary-deep));
+  box-shadow: 0 10px 24px rgba(139, 124, 255, 0.16);
   font-family: inherit;
-  background-color: #1a1a1a;
+  font-weight: 750;
+  letter-spacing: 0;
   cursor: pointer;
-  transition: border-color 0.25s;
+  transition:
+    transform 180ms ease,
+    border-color 180ms ease,
+    background 180ms ease,
+    box-shadow 180ms ease,
+    color 180ms ease,
+    opacity 180ms ease;
 }
 
-button:hover {
-  border-color: #646cff;
+button:hover:not(:disabled),
+.button:hover,
+.nav-button:hover {
+  border-color: rgba(170, 161, 255, 0.68);
+  background: linear-gradient(135deg, var(--eb-primary-hover), #8071df);
+  box-shadow: 0 14px 30px rgba(139, 124, 255, 0.24);
+  transform: translateY(-2px);
 }
 
-button:focus,
-button:focus-visible {
-  outline: 4px auto -webkit-focus-ring-color;
+button:active:not(:disabled),
+.button:active,
+.nav-button:active {
+  transform: translateY(0);
+  box-shadow: 0 6px 16px rgba(139, 124, 255, 0.16);
 }
 
-@media (prefers-color-scheme: light) {
-  :root {
-    color: #213547;
-    background-color: #f5f7fa;
-  }
+button:focus-visible,
+.button:focus-visible,
+.nav-button:focus-visible,
+a:focus-visible,
+input:focus-visible,
+textarea:focus-visible {
+  outline: 3px solid rgba(139, 124, 255, 0.42);
+  outline-offset: 3px;
+}
 
-  a:hover {
-    color: #747bff;
-  }
+button:disabled,
+input:disabled,
+textarea:disabled {
+  cursor: not-allowed;
+  opacity: 0.48;
+  box-shadow: none;
+  transform: none;
+}
 
-  button {
-    background-color: #f9f9f9;
-  }
+/* Shared visual tokens for all route-specific button variants. */
+.chat-shell button,
+.auth-page button,
+.auth-container button,
+.confirmation-container a,
+.landing-page button,
+.landing-page .button,
+.landing-page .nav-button {
+  text-decoration: none;
+  text-transform: none;
+}
+
+.conversation-action,
+.conversation-edit button,
+.sidebar-close,
+.hide-btn,
+.auth-secondary-btn,
+.icon-btn.clear,
+.icon-btn.clear.disabled,
+.icon-btn.clear:disabled {
+  border: 1px solid rgba(255, 255, 255, 0.09);
+  color: #dfe4ef;
+  background: #242c3d;
+  box-shadow: 0 8px 18px rgba(0, 0, 0, 0.12);
+}
+
+.conversation-action:hover,
+.conversation-edit button:hover,
+.sidebar-close:hover,
+.hide-btn:hover:not(:disabled),
+.auth-secondary-btn:hover:not(:disabled),
+.icon-btn.clear:hover:not(:disabled) {
+  border-color: rgba(139, 124, 255, 0.38);
+  color: #f5f7ff;
+  background: #303849;
+}
+
+.auth-error-message,
+.conversation-error,
+.sidebar-error,
+.error-msg {
+  border-color: rgba(255, 107, 107, 0.24);
+  color: #ffdfe3;
+  background: rgba(238, 90, 111, 0.16);
 }

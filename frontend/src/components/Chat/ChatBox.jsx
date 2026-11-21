@@ -113,8 +113,8 @@ function ChatBox() {
                             {sidebarOpen ? <PanelLeftClose size={20} /> : <PanelLeftOpen size={20} />}
                         </button>
                         <div className="chat-heading">
-                            <h2>Asystent językowy</h2>
-                            <p>Rozmawiam i poprawiam twoje błędy</p>
+                            <h2>English Buddy</h2>
+                            <p>AI conversation tutor</p>
                         </div>
                         <div>
                             {isAuthenticated ? (
