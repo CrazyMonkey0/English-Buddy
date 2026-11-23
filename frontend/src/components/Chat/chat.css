@@ -379,7 +379,7 @@
     overflow-y: auto;
     display: flex;
     flex-direction: column;
-    gap: 10px;
+    gap: 18px;
     max-width: 1200px;
     width: 100%;
     margin: 10px auto;
@@ -423,6 +423,61 @@
 .message-content p {
     margin: 0;
     line-height: 1.5;
+}
+
+.message-main-text {
+    color: #f5f7ff;
+    font-size: 1.04rem;
+    font-weight: 600;
+    line-height: 1.55;
+}
+
+.correction-sentence {
+    color: #c7d0df;
+}
+
+.correction-highlight {
+    border-radius: 4px;
+    color: #70e0a6;
+    background: rgba(69, 214, 137, 0.13);
+    font-weight: 700;
+    box-shadow: 0 0 0 2px rgba(69, 214, 137, 0.13);
+}
+
+.correction-card {
+    display: flex;
+    align-items: flex-start;
+    gap: 10px;
+    width: 100%;
+    padding: 11px 12px;
+    border: 1px solid rgba(69, 214, 197, 0.2);
+    border-radius: 12px;
+    color: #e9ecf4;
+    background: rgba(31, 112, 105, 0.12);
+    white-space: normal;
+}
+
+.correction-card-icon {
+    display: flex;
+    flex: 0 0 24px;
+    align-items: center;
+    justify-content: center;
+    width: 24px;
+    height: 24px;
+    border-radius: 50%;
+    color: #45d6c5;
+    background: rgba(69, 214, 197, 0.12);
+}
+
+.correction-card h4 {
+    margin: 0 0 3px;
+    color: #f5f7ff;
+    font-size: 0.88rem;
+}
+
+.correction-card p {
+    color: #aab5c7;
+    font-size: 0.82rem;
 }
 
 .message-buttons {
@@ -479,7 +534,6 @@
     border-radius: 12px;
     font-style: italic;
     color: #333;
-    margin-top: 8px;
     border-left: 3px solid #667eea;
 }
 
@@ -531,7 +585,9 @@
     border: none;
     border-radius: 50%;
     width: 40px;
-    height: 35px;
+    height: 40px;
+    min-height: 0;
+    padding: 0;
     display: flex;
     align-items: center;
     justify-content: center;
@@ -814,15 +870,15 @@
 }
 
 .user-msg {
-    border: 1px solid rgba(139, 124, 255, 0.22);
+    border: 1px solid rgba(164, 151, 255, 0.34);
     color: #f5f7ff;
-    background: linear-gradient(135deg, #6658bd, #8274d7);
+    background: linear-gradient(135deg, #514783, #62579c);
 }
 
 .bot-msg {
-    border: 1px solid rgba(255, 255, 255, 0.09);
+    border: 1px solid rgba(69, 214, 197, 0.18);
     color: #e9ecf4;
-    background: #171f2d;
+    background: linear-gradient(135deg, #17212f, #1a2834);
 }
 
 .message-time {
@@ -842,7 +898,28 @@
 }
 
 .mess.play {
-    background: linear-gradient(135deg, #45b9ad, #2f9187);
+    border: 1px solid rgba(69, 214, 197, 0.4);
+    color: #ecfffc;
+    background: linear-gradient(135deg, #36aa9b, #247f78);
+}
+
+.mess.play:hover:not(:disabled) {
+    background: linear-gradient(135deg, #43c4b1, #2c9287);
+}
+
+.mess.pause {
+    border: 1px solid rgba(69, 214, 197, 0.28);
+    color: #d7fffa;
+    background: linear-gradient(135deg, #287f78, #205d61);
+}
+
+.mess svg {
+    display: block;
+    width: 19px;
+    height: 19px;
+    fill: currentColor;
+    stroke: currentColor;
+    stroke-width: 2.5;
 }
 
 .guest-history-notice {
@@ -1002,6 +1079,7 @@
 
     .messages {
         padding: 15px 10px;
+        gap: 14px;
         margin-top: 10px;
         margin-bottom: 10px;
         border-radius: 15px;
@@ -1085,6 +1163,7 @@
 
     .messages {
         padding: 12px 8px;
+        gap: 12px;
         margin-top: 8px;
         margin-bottom: 8px;
     }

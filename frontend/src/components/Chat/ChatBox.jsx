@@ -2,11 +2,38 @@ import React, { useEffect, useRef, useState } from 'react';
 import MessageInput from './MessageInput';
 import { useChat } from '../../hooks/useChat';
 import { translateText } from '../../services/chatTranslation';
-import { PanelLeftClose, PanelLeftOpen, Pause, Play } from 'lucide-react';
+import { Check, PanelLeftClose, PanelLeftOpen, Pause, Play } from 'lucide-react';
 import { useAuth } from '../../context/useAuth';
 import { useNavigate } from "react-router-dom";
 import ConversationSidebar from "./ConversationSidebar";
 import "./chat.css";
+
+const escapeRegex = (value) => value.replace(/[.*+?^${}()|[\]\\]/g, "\\$&");
+
+const renderCorrectedSentence = (correction) => {
+    const correctedParts = [...new Set(
+        (correction.changes || [])
+            .map((change) => change.corrected.trim())
+            .filter(Boolean)
+    )].sort((first, second) => second.length - first.length);
+
+    if (!correctedParts.length) return correction.corrected;
+
+    const correctedPattern = new RegExp(
+        `(${correctedParts.map(escapeRegex).join("|")})`,
+        "gi"
+    );
+
+    return correction.corrected.split(correctedPattern).map((part, index) => {
+        const isCorrected = correctedParts.some(
+            (correctedPart) => correctedPart.toLowerCase() === part.toLowerCase()
+        );
+
+        return isCorrected
+            ? <span className="correction-highlight" key={index}>{part}</span>
+            : part;
+    });
+};
 
 function ChatBox() {
     const {
@@ -145,10 +172,32 @@ function ChatBox() {
                                 className={`message ${msg.sender === "user" ? "user-msg" : "bot-msg"} ${msg.type === "error" ? "error-msg" : ""}`}
                             >
                                 <div className="message-content">
-                                    <p>{msg.text}</p>
+                                    <p className="message-main-text">{msg.text}</p>
 
                                     {translations[index] && visibleTranslations[index] && (
                                         <p className="translation">{translations[index]}</p>
+                                    )}
+
+                                    {msg.correction && (
+                                        <>
+                                            <p className="correction-sentence">
+                                                A small correction: “{renderCorrectedSentence(msg.correction)}”
+                                            </p>
+                                            {msg.correction.changes?.map((change, correctionIndex) => (
+                                                <div
+                                                    className="correction-card"
+                                                    key={`${change.original}-${correctionIndex}`}
+                                                >
+                                                    <span className="correction-card-icon">
+                                                        <Check size={16} aria-hidden="true" />
+                                                    </span>
+                                                    <div>
+                                                        <h4>Why “{change.corrected}”?</h4>
+                                                        <p>{change.explanation}</p>
+                                                    </div>
+                                                </div>
+                                            ))}
+                                        </>
                                     )}
 
                                     <div className="message-buttons">
@@ -167,7 +216,9 @@ function ChatBox() {
                                                     aria-label={isPlaying ? "Wstrzymaj" : label}
                                                     className={`mess ${isPlaying ? "pause" : "play"}`}
                                                 >
-                                                    {isPlaying ? <Pause size={20} /> : <Play size={20} />}
+                                                    {isPlaying
+                                                        ? <Pause size={20} fill="currentColor" strokeWidth={2.5} />
+                                                        : <Play size={20} fill="currentColor" strokeWidth={2.5} />}
                                                 </button>
                                             );
                                         })}
