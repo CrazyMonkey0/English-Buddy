@@ -38,6 +38,7 @@ export const useChat = () => {
                     id: message.id,
                     sender: message.role === "assistant" ? "bot" : "user",
                     text: message.content,
+                    correction: message.correction || null,
                     type: "text",
                     audioAssets: (message.audio_assets || []).map((asset) => ({
                         ...asset,
@@ -87,6 +88,7 @@ export const useChat = () => {
                 {
                     sender: "bot",
                     text: botReply.response,
+                    correction: botReply.corrections || null,
                     audioAssets: botReply.audio
                         ? [{
                             audio_type: "tts",
@@ -152,6 +154,7 @@ export const useChat = () => {
                 {
                     sender: "bot",
                     text: result.response,
+                    correction: result.corrections || null,
                     audioAssets: result.audio
                         ? [{
                             audio_type: "tts",
