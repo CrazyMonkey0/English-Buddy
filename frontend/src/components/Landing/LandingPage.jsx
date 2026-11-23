@@ -14,6 +14,7 @@ import {
     Volume2,
 } from "lucide-react";
 import { useAuth } from "../../context/useAuth";
+import englishTalkImage from "../../assets/english-talk.webp";
 import "./landing.css";
 
 const availableFeatures = [
@@ -275,36 +276,12 @@ export default function LandingPage() {
                             </ul>
                         </div>
                         <div className="chat-window" data-reveal>
-                            <div className="chat-window-bar">
-                                <div className="chat-person">
-                                    <div className="mini-avatar"><Sparkles size={14} /></div>
-                                    <div><strong>English Buddy</strong><span>AI tutor</span></div>
-                                </div>
-                                <span className="live-label"><i /> Live practice</span>
-                            </div>
-                            <div className="chat-messages">
-                                <div className="message-row user-row">
-                                    <div className="bubble user-bubble">Yesterday I go to the cinema with my friends.</div>
-                                    <span className="message-time">10:32</span>
-                                </div>
-                                <div className="message-row buddy-row">
-                                    <div className="mini-avatar small"><Sparkles size={12} /></div>
-                                    <div>
-                                        <div className="bubble buddy-bubble">
-                                            That sounds fun! A small correction: “Yesterday I <mark>went</mark> to the cinema with my friends.”
-                                        </div>
-                                        <div className="correction-card">
-                                            <span className="correction-icon"><Check size={14} /></span>
-                                            <div><strong>Why “went”?</strong><p>Use the past tense when talking about yesterday.</p></div>
-                                        </div>
-                                    </div>
-                                </div>
-                                <div className="typing-row"><span /><span /><span /></div>
-                            </div>
-                            <div className="chat-input-preview">
-                                <span>Write or speak in English...</span>
-                                <button type="button" aria-label="Start voice message"><Mic size={18} /></button>
-                            </div>
+                            <img
+                                className="chat-window-image"
+                                src={englishTalkImage}
+                                alt="English Buddy chat showing a correction and audio playback"
+                                loading="lazy"
+                            />
                         </div>
                     </div>
                 </section>
