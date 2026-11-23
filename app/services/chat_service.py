@@ -1,3 +1,4 @@
+import os
 import uuid
 
 from fastapi import HTTPException, status
@@ -11,6 +12,8 @@ from sqlalchemy import select
 from sqlalchemy.ext.asyncio import AsyncSession
 from sqlalchemy.orm import selectinload
 
+provider = os.getenv("PROVIDER", "openai")
+
 
 async def create_conversation(
     session: AsyncSession, user_id: int, title: str | None = None
@@ -19,7 +22,7 @@ async def create_conversation(
     new_conversation = Conversation(
         id=new_conv_id,
         user_id=str(user_id),
-        title=title,
+        title=f"New ID {new_conv_id}" if title is None else title,
     )
     session.add(new_conversation)
     await session.commit()
@@ -97,7 +100,6 @@ async def get_formatted_context(
     user_id: int,
     conv_id: uuid.UUID,
     limit: int = 6,
-    provider: str = "hf",
 ) -> list[dict[str, str]]:
     await get_owned_conversation(session, user_id, conv_id)
     stmt = (

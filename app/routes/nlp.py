@@ -5,7 +5,7 @@ from core.rate_limit import limiter
 from db.database import get_async_session
 from fastapi import APIRouter, Depends, HTTPException, Request, status
 from models.user import User
-from providers.huggingface import get_hf_response, load_model_nlp
+from providers.huggingface import get_hf_response
 from providers.openai import get_openai_response
 from schemas.chat import ChatRequest
 from services.chat_service import (
@@ -50,15 +50,11 @@ async def chat(
             )
 
     if data.conversation_id is None:
-        data.conversation_id = await create_conversation(
-            db, user.id, title="New Conversation"
-        )
+        data.conversation_id = await create_conversation(db, user.id)
     else:
         await get_owned_conversation(db, user.id, data.conversation_id)
 
-    context = await get_formatted_context(
-        db, user.id, data.conversation_id, limit=10, provider=provider
-    )
+    context = await get_formatted_context(db, user.id, data.conversation_id, limit=10)
 
     context.append({"role": "user", "content": data.message})
 
