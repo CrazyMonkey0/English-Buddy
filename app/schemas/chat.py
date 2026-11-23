@@ -22,6 +22,22 @@ class MessageAudioRead(BaseModel):
     created_at: datetime
 
 
+class CorrectionChangeRead(BaseModel):
+    model_config = ConfigDict(from_attributes=True)
+
+    original: str
+    corrected: str
+    explanation: str
+
+
+class SentenceCorrectionRead(BaseModel):
+    model_config = ConfigDict(from_attributes=True)
+
+    original: str
+    corrected: str
+    changes: list[CorrectionChangeRead] = Field(default_factory=list)
+
+
 class ChatMessageRead(BaseModel):
     model_config = ConfigDict(from_attributes=True)
 
@@ -31,3 +47,4 @@ class ChatMessageRead(BaseModel):
     content: str
     created_at: datetime
     audio_assets: list[MessageAudioRead] = Field(default_factory=list)
+    correction: SentenceCorrectionRead | None = None
