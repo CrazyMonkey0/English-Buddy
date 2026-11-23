@@ -23,3 +23,9 @@ class Message(Base):
         back_populates="message",
         cascade="all, delete-orphan",
     )
+    correction: Mapped["MessageCorrection | None"] = relationship(
+        "MessageCorrection",
+        back_populates="message",
+        cascade="all, delete-orphan",
+        uselist=False,
+    )
