@@ -1,9 +1,11 @@
+import os
 from pathlib import Path
 
 from core.rate_limit import limiter
 from db.database import get_async_session
 from fastapi import APIRouter, Depends, HTTPException, Request, status
 from models.user import User
+from providers.huggingface import get_hf_response, load_model_nlp
 from providers.openai import get_openai_response
 from schemas.chat import ChatRequest
 from services.chat_service import (
@@ -15,23 +17,13 @@ from services.chat_service import (
     get_owned_conversation,
 )
 from sqlalchemy.ext.asyncio import AsyncSession
-from transformers import AutoModelForCausalLM, AutoTokenizer
 from users import current_active_user
 
 from .tts import save_audio
 
 # Model name for NLP
-model_name = "Qwen/Qwen2.5-1.5B-Instruct"
+
 router = APIRouter()
-
-
-# Load NLP model and tokenizer
-def load_model_nlp():
-    model = AutoModelForCausalLM.from_pretrained(
-        model_name, torch_dtype="auto", device_map="auto"
-    )
-    tokenizer = AutoTokenizer.from_pretrained(model_name)
-    return model, tokenizer
 
 
 # Handle chat requests
@@ -46,6 +38,7 @@ async def chat(
     user: User = Depends(current_active_user),
 ):
     # model, tokenizer = request.app.state.model_nlp, request.app.state.tokenizer_nlp
+    provider = os.getenv("PROVIDER", "openai")
 
     if data.audio_id is not None:
         audio_filename = f"{data.audio_id.hex}.wav"
@@ -64,34 +57,24 @@ async def chat(
         await get_owned_conversation(db, user.id, data.conversation_id)
 
     context = await get_formatted_context(
-        db, user.id, data.conversation_id, limit=10, provider="openai"
+        db, user.id, data.conversation_id, limit=10, provider=provider
     )
 
     context.append({"role": "user", "content": data.message})
-    response = await get_openai_response(context)
 
-    assistant_text = response.response
-    correction = response.correction
-    # # Tokenize input and generate a response
-    # text = tokenizer.apply_chat_template(
-    #     context, tokenize=False, add_generation_prompt=True
-    # )
-    # model_inputs = tokenizer([text], return_tensors="pt").to(model.device)
-    # generated_ids = model.generate(
-    #     **model_inputs,
-    #     max_new_tokens=512,
-    #     top_p=0.9,
-    #     temperature=0.7,
-    #     do_sample=True,
-    #     pad_token_id=tokenizer.eos_token_id,
-    # )
-
-    # # Decode the response
-    # generated_ids = [
-    #     output_ids[len(input_ids) :]
-    #     for input_ids, output_ids in zip(model_inputs.input_ids, generated_ids)
-    # ]
-    # response = tokenizer.batch_decode(generated_ids, skip_special_tokens=True)[0]
+    if provider == "hf":
+        response = await get_hf_response(context)
+        assistant_text = response
+        corrections = None
+    elif provider == "openai":
+        response = await get_openai_response(context)
+        assistant_text = response.response
+        corrections = response.correction
+    else:
+        raise HTTPException(
+            status_code=status.HTTP_500_INTERNAL_SERVER_ERROR,
+            detail="Invalid provider specified",
+        )
 
     user_message = await create_new_message(
         db,
@@ -117,8 +100,8 @@ async def chat(
         assistant_text,
         "assistant",
     )
-    if correction is not None:
-        create_message_correction(db, assistant_message, correction)
+    if corrections is not None:
+        await create_message_correction(db, assistant_message, corrections)
 
     # Save response as audio
     url_path = save_audio(request, assistant_text)
@@ -135,6 +118,6 @@ async def chat(
     return {
         "conversation_id": data.conversation_id,
         "response": assistant_text,
-        "corrections": correction.model_dump() if correction else None,
+        "corrections": corrections.model_dump() if corrections else None,
         "audio": f"http://127.0.0.1:8000{url_path}",
     }
