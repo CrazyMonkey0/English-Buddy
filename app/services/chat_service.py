@@ -1,10 +1,12 @@
 import uuid
-from datetime import datetime
 
 from fastapi import HTTPException, status
 from models.conversation import Conversation
 from models.message import Message
 from models.message_audio import MessageAudio
+from models.message_correction import MessageCorrection, MessageCorrectionChange
+from prompt import ENGLISH_BUDDY_SYSTEM_PROMPT
+from schemas.ai_response import SentenceCorrection
 from sqlalchemy import select
 from sqlalchemy.ext.asyncio import AsyncSession
 from sqlalchemy.orm import selectinload
@@ -91,7 +93,11 @@ async def change_conversation_title(
 
 
 async def get_formatted_context(
-    session: AsyncSession, user_id: int, conv_id: uuid.UUID, limit: int = 6
+    session: AsyncSession,
+    user_id: int,
+    conv_id: uuid.UUID,
+    limit: int = 6,
+    provider: str = "hf",
 ) -> list[dict[str, str]]:
     await get_owned_conversation(session, user_id, conv_id)
     stmt = (
@@ -106,10 +112,10 @@ async def get_formatted_context(
 
     result = await session.execute(stmt)
     messages = result.scalars().all()
-
-    final_context = [
-        {"role": "system", "content": "You are a friendly English Teacher."}
-    ]
+    if provider == "openai":
+        final_context = [{"role": "developer", "content": ENGLISH_BUDDY_SYSTEM_PROMPT}]
+    else:
+        final_context = [{"role": "system", "content": ENGLISH_BUDDY_SYSTEM_PROMPT}]
 
     for m in reversed(messages):
         final_context.append({"role": m.role, "content": m.content})
@@ -127,7 +133,12 @@ async def get_conversation_messages(
 
     stmt = (
         select(Message)
-        .options(selectinload(Message.audio_assets))
+        .options(
+            selectinload(Message.audio_assets),
+            selectinload(Message.correction).selectinload(
+                MessageCorrection.changes
+            ),
+        )
         .where(Message.conversation_id == conv_id)
         .order_by(Message.created_at.asc())
     )
@@ -159,6 +170,29 @@ async def create_message_audio(
     session.add(audio)
 
     return audio
+
+
+def create_message_correction(
+    session: AsyncSession,
+    message: Message,
+    correction: SentenceCorrection,
+) -> MessageCorrection:
+    saved_correction = MessageCorrection(
+        message=message,
+        original=correction.original,
+        corrected=correction.corrected,
+        changes=[
+            MessageCorrectionChange(
+                position=position,
+                original=change.original,
+                corrected=change.corrected,
+                explanation=change.explanation,
+            )
+            for position, change in enumerate(correction.changes)
+        ],
+    )
+    session.add(saved_correction)
+    return saved_correction
 
 
 async def create_new_message(

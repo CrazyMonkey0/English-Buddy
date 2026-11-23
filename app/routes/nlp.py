@@ -1,14 +1,15 @@
-import uuid
 from pathlib import Path
 
 from core.rate_limit import limiter
 from db.database import get_async_session
 from fastapi import APIRouter, Depends, HTTPException, Request, status
 from models.user import User
+from providers.openai import get_openai_response
 from schemas.chat import ChatRequest
 from services.chat_service import (
     create_conversation,
     create_message_audio,
+    create_message_correction,
     create_new_message,
     get_formatted_context,
     get_owned_conversation,
@@ -35,7 +36,7 @@ def load_model_nlp():
 
 # Handle chat requests
 @router.post("/chat")
-@limiter.limit("4/minute")  # Rate limit: 4 requests per minute
+@limiter.limit("6/minute")  # Rate limit: 6 requests per minute
 async def chat(
     request: Request,
     data: ChatRequest,
@@ -44,7 +45,7 @@ async def chat(
     ),
     user: User = Depends(current_active_user),
 ):
-    model, tokenizer = request.app.state.model_nlp, request.app.state.tokenizer_nlp
+    # model, tokenizer = request.app.state.model_nlp, request.app.state.tokenizer_nlp
 
     if data.audio_id is not None:
         audio_filename = f"{data.audio_id.hex}.wav"
@@ -62,30 +63,36 @@ async def chat(
     else:
         await get_owned_conversation(db, user.id, data.conversation_id)
 
-    context = await get_formatted_context(db, user.id, data.conversation_id)
+    context = await get_formatted_context(
+        db, user.id, data.conversation_id, limit=10, provider="openai"
+    )
 
     context.append({"role": "user", "content": data.message})
+    response = await get_openai_response(context)
 
-    # Tokenize input and generate a response
-    text = tokenizer.apply_chat_template(
-        context, tokenize=False, add_generation_prompt=True
-    )
-    model_inputs = tokenizer([text], return_tensors="pt").to(model.device)
-    generated_ids = model.generate(
-        **model_inputs,
-        max_new_tokens=512,
-        top_p=0.9,
-        temperature=0.7,
-        do_sample=True,
-        pad_token_id=tokenizer.eos_token_id,
-    )
+    assistant_text = response.response
+    correction = response.correction
+    # # Tokenize input and generate a response
+    # text = tokenizer.apply_chat_template(
+    #     context, tokenize=False, add_generation_prompt=True
+    # )
+    # model_inputs = tokenizer([text], return_tensors="pt").to(model.device)
+    # generated_ids = model.generate(
+    #     **model_inputs,
+    #     max_new_tokens=512,
+    #     top_p=0.9,
+    #     temperature=0.7,
+    #     do_sample=True,
+    #     pad_token_id=tokenizer.eos_token_id,
+    # )
 
-    # Decode the response
-    generated_ids = [
-        output_ids[len(input_ids) :]
-        for input_ids, output_ids in zip(model_inputs.input_ids, generated_ids)
-    ]
-    response = tokenizer.batch_decode(generated_ids, skip_special_tokens=True)[0]
+    # # Decode the response
+    # generated_ids = [
+    #     output_ids[len(input_ids) :]
+    #     for input_ids, output_ids in zip(model_inputs.input_ids, generated_ids)
+    # ]
+    # response = tokenizer.batch_decode(generated_ids, skip_special_tokens=True)[0]
+
     user_message = await create_new_message(
         db,
         user.id,
@@ -107,12 +114,14 @@ async def chat(
         db,
         user.id,
         data.conversation_id,
-        response,
+        assistant_text,
         "assistant",
     )
+    if correction is not None:
+        create_message_correction(db, assistant_message, correction)
 
     # Save response as audio
-    url_path = save_audio(request, response)
+    url_path = save_audio(request, assistant_text)
     await create_message_audio(
         db,
         assistant_message,
@@ -125,6 +134,7 @@ async def chat(
 
     return {
         "conversation_id": data.conversation_id,
-        "response": response,
+        "response": assistant_text,
+        "corrections": correction.model_dump() if correction else None,
         "audio": f"http://127.0.0.1:8000{url_path}",
     }
