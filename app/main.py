@@ -8,11 +8,11 @@ from middleware.rate_limit import RateLimitMiddleware
 from routes import auth, conversation, csrf, users
 from routes.asr import load_model_asr
 from routes.asr import router as asr_router
-from routes.nlp import load_model_nlp
 from routes.nlp import router as nlp_router
 from routes.translation import load_model_translation
 from routes.translation import router as trans_router
 from routes.tts import load_model_tts
+from middleware.csrf_middleware import CSRFMiddleware
 
 # from middleware.csrf_middleware import CSRFMiddleware
 from slowapi.errors import RateLimitExceeded
@@ -36,10 +36,7 @@ app.add_middleware(SlowAPIMiddleware)
 app.add_exception_handler(RateLimitExceeded, rate_limit_handler)
 app.add_middleware(RateLimitMiddleware)
 
-# app.add_middleware(CSRFMiddleware)
-
-# Load the pre-trained NLP
-app.state.model_nlp, app.state.tokenizer_nlp = load_model_nlp()
+app.add_middleware(CSRFMiddleware)
 
 # Load the pre-trained Translation
 app.state.model_trans, app.state.tokenizer_trans = load_model_translation()
